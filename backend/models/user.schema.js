@@ -2,6 +2,9 @@ const { kMaxLength } = require('buffer')
 const mongoose=require('mongoose')
 const { object } = require('webidl-conversions')
 const AuthRole = require('../utils/authRole.js')
+const bcrypt=require('bcryptjs')
+const JWT=require('jsonwebtoken')
+const crypto=require('crypto')
 
 const userSchema= mongoose.Schema(
     {
@@ -41,4 +44,15 @@ const userSchema= mongoose.Schema(
     {
         timestamps: true
     }
-)
+);
+
+// challenge 1- encrypt password
+// mongoose hooks
+
+
+
+
+
+
+
+module.exports=mongoose.model('User',userSchema)
