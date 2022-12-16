@@ -45,10 +45,13 @@ const orderSchema= mongoose.Schema(
        status:
        {
         type:String,
-        enum:['ORDER', "SHIPPED", "DELIVERED", "CANCELLED"]
+        enum:['ORDER', "SHIPPED", "DELIVERED", "CANCELLED"] // assignement to improve this
        }
+       // paymwnt MOdel : upi , creditcard or wallet, COD
     },
     {
         timestamps:true
     }
 )
+
+module.exports=mongoose.model('Order',orderSchema)
