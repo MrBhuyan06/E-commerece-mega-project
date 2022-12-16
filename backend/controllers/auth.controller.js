@@ -2,7 +2,7 @@ const User = require('../models/user.schema.js')
 const asyncHandler = require('../services/asyncHandler.js')
 const CustomError = require('../utils/customError.js')
 const mailHepler=require('../utils/mailHelper.js')
-
+const crypto=require('crypto')
 
 
 exports.cookieOptions={
@@ -65,6 +65,7 @@ exports.sigUp=asyncHandler(async (req,res) =>{
 
 const asyncHandler = require("../services/asyncHandler.js");
 const e = require('express')
+const { throws } = require('assert')
 
 
 exports.login= asyncHandler(async (req, res) =>
@@ -173,3 +174,55 @@ exports.forgotPassword= asyncHandler(async(req, res) =>
      }
 
 })
+
+/******************************************************
+ * @RESET_PASSWORD
+ * @route http://localhost:5000/api/auth/password/reset/:restToken
+ * @description User will be to reset passsword based on url
+ * @parameters  token from url , password and confirmpass
+ * @returns User object
+ ******************************************************/
+
+exports.resetPassword=asyncHandler( async (req, res) => {
+  const {token:restToken} = req.params
+  const {password, confirmPassword} = req.body
+
+  const restPasswordToken = crypto
+  .createHash('sha256')
+  .update(restToken)
+  .digest('hex')
+
+  const user= await User.findOne({
+    forgotPasswordToken:restPasswordToken,
+    forgotPasswordExpiry: {$gt: Date.now()}
+  })
+   if( !user)
+   {
+    throw new CustomError('password token in valid or expired', 400)
+   }
+   if(password !== confirmPassword)
+   {
+    throw new CustomError('password and confirmPassword doesnot match', 400)
+   }
+   
+    user.password = password
+    user.forgotPasswordToken=undefined
+    user.forgotPasswordExpiry= undefined
+
+    await user.save()
+    // create a tokrn and send to the user
+
+    const token = user.getJwtToken()
+    user.password=undefined
+    
+    // helper method for the cookie can be added
+
+    res.cookie("token", token,this.cookieOptions)
+    res.status(200).json({
+        success:true,
+        user
+    })
+
+})
+
+//TODO: create a controller for change password
