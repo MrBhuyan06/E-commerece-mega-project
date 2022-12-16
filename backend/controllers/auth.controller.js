@@ -1,6 +1,7 @@
 const User = require('../models/user.schema.js')
 const asyncHandler = require('../services/asyncHandler.js')
 const CustomError = require('../utils/customError.js')
+const mailHepler=require('../utils/mailHelper.js')
 
 
 
@@ -63,6 +64,7 @@ exports.sigUp=asyncHandler(async (req,res) =>{
  ******************************************************/
 
 const asyncHandler = require("../services/asyncHandler.js");
+const e = require('express')
 
 
 exports.login= asyncHandler(async (req, res) =>
@@ -116,4 +118,58 @@ exports.logout= asyncHandler(async (_req, res) =>
         success:true,
         message: "Logged Out"
     })
+})
+
+
+/******************************************************
+ * @FORGOT_PASSWORD
+ * @route http://localhost:5000/api/auth/password/forgot
+ * @description User will submit email and we will generate a token 
+ * @parameters  email
+ * @returns Success message - email send
+ ******************************************************/
+
+exports.forgotPassword= asyncHandler(async(req, res) =>
+{
+    const {email}=req.body
+    if( !email)
+    {
+        throw new CustomError('email is required ', 400)
+    }
+    const user= await User.findOne({email})
+   
+    if( !user)
+    {
+        throw new CustomError('user not found ', 404)
+    }
+     const resetToken = user.generateForgotPasswordToken()
+
+     await user.save({validateBeforeSave: false})
+
+     const resetUrl =
+     `${req.protocal}://${req.get("host")}//api/auth/password/reset/${resetToken}`
+     
+     const text=` Your password reset url is  
+     \n\n ${resetUrl}\n\n
+     `
+
+     try {
+        await mailHepler({
+            email:user.email,
+            subject: "password reset email for abhi e-comm",
+            text:text,
+        })
+        res.status(200).json({
+            success: true,
+            message:`Email send to ${user.email}`
+        })
+     } catch (error) {
+        // roll back - clear filed and save to DB
+        user.forgotPasswordToken=undefined
+        user.forgotPasswordExpiry=undefined
+        await user.save({validateBeforeSave:false})
+
+        throw new CustomError(err.message ||'Email sent failer', 500)
+     }
+
 })
